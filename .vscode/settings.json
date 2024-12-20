@@ -10,5 +10,7 @@
         "*.dbclient-js": "javascript",
         "*.h": "c",
         "cstdint": "cpp"
-    }
+    },
+    "idf.flashType": "UART",
+    "idf.portWin": "COM10"
 }

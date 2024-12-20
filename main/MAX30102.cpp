@@ -7,7 +7,7 @@ i2c_master_dev_handle_t dev_handle;
 #define SCLK_Pin GPIO_NUM_10
 #define SDA_Pin GPIO_NUM_11
 
-const uint8_t Reg_data[] = {
+const uint8_t Reg_data[16] = {
     (uint8_t)FIFO_Configuration, // 寄存器地址
     SAMPLE_AVG_2 | FIFO_ROLLOVER_EN | FIFO_ALMOST_FULL_7,
     (uint8_t)MODE_CONFIG,
