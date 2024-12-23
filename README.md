@@ -15,7 +15,6 @@ We encourage the users to use the example as a template for the new projects.
 A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
 
 ## Example folder contents
-
 The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
 
 ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`

@@ -2,14 +2,34 @@
     "C_Cpp.intelliSenseEngine": "default",
     "idf.espIdfPathWin": "C:\\Users\\xfp57\\esp\\v5.2.3\\esp-idf",
     "idf.openOcdConfigs": [
-        "board/esp32s3-builtin.cfg"
+        "interface/ftdi/esp32_devkitj_v1.cfg",
+        "target/esp32.cfg"
     ],
     "idf.toolsPathWin": "c:\\Espressif\\python_env\\idf5.2_py3.11_env",
     "files.associations": {
+        "*.ndjson": "jsonl",
         "*.dbclient-js": "javascript",
         "*.h": "c",
-        "cstdint": "cpp"
+        "cstdint": "cpp",
+        "array": "cpp",
+        "*.tcc": "cpp",
+        "chrono": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "string_view": "cpp",
+        "memory": "cpp",
+        "random": "cpp",
+        "format": "cpp",
+        "initializer_list": "cpp",
+        "mutex": "cpp",
+        "span": "cpp",
+        "regex": "cpp",
+        "functional": "cpp",
+        "cstdlib": "cpp"
     },
     "idf.flashType": "UART",
-    "idf.portWin": "COM5"
+    "idf.portWin": "COM10"
 }
