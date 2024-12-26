@@ -114,7 +114,7 @@ esp_err_t HTTP_Server::static_http_handle(httpd_req_t *req)
     return instance->http_handle(req);
 }
 
-void HTTP_Server::OpenHtml(const char *load)
+void HTTP_Server::  OpenHtml(const char *load)
 {
     Html_size = strlen(load);
     ESP_LOGI(TAG, "Start copy HTML size: %d", Html_size);

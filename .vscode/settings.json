@@ -2,8 +2,7 @@
     "C_Cpp.intelliSenseEngine": "default",
     "idf.espIdfPathWin": "C:\\Users\\xfp57\\esp\\v5.2.3\\esp-idf",
     "idf.openOcdConfigs": [
-        "interface/ftdi/esp32_devkitj_v1.cfg",
-        "target/esp32.cfg"
+        "board/esp32s3-builtin.cfg"
     ],
     "idf.toolsPathWin": "c:\\Espressif\\python_env\\idf5.2_py3.11_env",
     "files.associations": {
@@ -28,7 +27,12 @@
         "span": "cpp",
         "regex": "cpp",
         "functional": "cpp",
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "netfwd": "c",
+        "iosfwd": "c",
+        "new": "c",
+        "type_traits": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM10"

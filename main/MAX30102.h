@@ -1,7 +1,21 @@
 #ifndef MAX30102_H
 #define MAX30102_H
 
+/**
+ * @file MAX30102.h
+ * @author xfp23 (@github.com/xfp23)
+ * @brief MAX30102 传感器驱动头文件
+ * @version 0.1
+ * @date 2024-12-26
+ *
+ * @copyright Copyright (c) 2024
+ *
+ * @note 本文件包含了 MAX30102 传感器的初始化、配置和数据读取等功能接口定义。
+ *       提供了与 MAX30102 进行 I2C 通信的必要功能，支持心率监测和血氧饱和度等功能。
+ */
+
 #include "driver/i2c_master.h"
+#include "driver/gpio.h"
 #include <stdint.h>
 /**
  * 中断1寄存器映射： B7: A_FULL B6:PPG_RDY   B5:ALC_OVF
@@ -44,34 +58,34 @@ MAX30102 IC。上电就绪中断无法禁用，因为模块的数字状态在
  * 18位的ADC值，有效位0~17
  *
  */
-#define MAX30102_ADDR 0xAE
+// #define MAX30102_ADDR 0xAE
 // 每当触发中断时，MAX30102将低电平有效中断引脚拉至低电平状态，直到中断被触发。 中断被清除后，引脚将恢复高电平已清除。
 typedef enum
 {
-    INTERRUPT_STATUS_1 = 0X00,           // 中断状态寄存器1，B7: A_FULL, B6: PPG_RDY, B5: ALC_OVF
+  INTERRUPT_STATUS_1 = 0X00,             // 中断状态寄存器1，B7: A_FULL, B6: PPG_RDY, B5: ALC_OVF
                                          // 触发条件包括FIFO满、PPG数据准备好、环境光消除溢出
-    INTERRUPT_STATUS_2 = 0X01,           // 中断状态寄存器2，B1: DIE_TEMP_RDY
+  INTERRUPT_STATUS_2 = 0X01,             // 中断状态寄存器2，B1: DIE_TEMP_RDY
                                          // 触发条件为芯片内部温度转换完成
-    INTERRUPT_ENABLE_1 = 0X02,           // 中断使能寄存器1，用来启用或禁用特定的中断源
-    INTERRUPT_ENABLE_2 = 0X03,           // 中断使能寄存器2，用来启用或禁用温度中断
-    FIFO_WRITE_POINTER = 0X04,           // FIFO写指针寄存器，指示下一次数据写入的位置
-    OVERFLOW_COUNTER = 0X05,             // FIFO溢出计数器，当FIFO溢出时增加
-    FIFO_READ_POINTER = 0X06,            // FIFO读指针寄存器，指示下一次数据读取的位置
-    FIFO_Data_Register = 0X07,           // FIFO数据寄存器，存储最新的传感器数据（如PPG数据）
-    FIFO_Configuration = 0X08,           // FIFO配置寄存器，控制FIFO的行为（如FIFO满时的中断条件等）
-    MODE_CONFIG = 0x09,                  // 工作模式配置寄存器，设置传感器的工作模式（如心率模式、SpO2模式等）
-    SPO2_CONFIG = 0x0A,                  // SpO2配置寄存器，用于设置SpO2测量的灵敏度和采样率
-    LED_PULSE_AMPLITUDE_LED1PA = 0X0C,   // LED1的脉冲幅度（LED驱动电流的强度）
-    LED_PULSE_AMPLITUDE_LED2PA = 0X0D,   // LED2的脉冲幅度（LED驱动电流的强度）
-    MULTI_LED_MODE_CONTROL_SLOT1_3 = 0x11, // 多LED模式控制寄存器1和2，用于控制LED的开启/关闭
-    //MULTI_LED_MODE_CONTROL_SLOT2 = 0x11, // 多LED模式控制寄存器2，用于控制LED的开启/关闭
-    MULTI_LED_MODE_CONTROL_SLOT2_4 = 0x12, // 多LED模式控制寄存器3和4，用于控制LED的开启/关闭
-    // MULTI_LED_MODE_CONTROL_SLOT4 = 0x12, // 多LED模式控制寄存器4，用于控制LED的开启/关闭
-    DIE_TEMP_INTEGER = 0x1F,             // 温度寄存器整数部分，用于读取芯片的温度
-    DIE_TEMP_FRACTION = 0X20,            // 温度寄存器小数部分，用于读取芯片的温度
-    DIE_TEMP_CONFIG = 0X21,              // 温度配置寄存器，用于启用或禁用温度传感器
-    REVISION_ID = 0XFE,                  // 修订ID寄存器，用于获取芯片的修订版本
-    PART_ID = 0XFF,                      // 部件ID寄存器，用于获取芯片的型号和ID
+  INTERRUPT_ENABLE_1 = 0X02,             // 中断使能寄存器1，用来启用或禁用特定的中断源
+  INTERRUPT_ENABLE_2 = 0X03,             // 中断使能寄存器2，用来启用或禁用温度中断
+  FIFO_WRITE_POINTER = 0X04,             // FIFO写指针寄存器，指示下一次数据写入的位置
+  OVERFLOW_COUNTER = 0X05,               // FIFO溢出计数器，当FIFO溢出时增加
+  FIFO_READ_POINTER = 0X06,              // FIFO读指针寄存器，指示下一次数据读取的位置
+  FIFO_Data_Register = 0X07,             // FIFO数据寄存器，存储最新的传感器数据（如PPG数据）
+  FIFO_Configuration = 0X08,             // FIFO配置寄存器，控制FIFO的行为（如FIFO满时的中断条件等）
+  MODE_CONFIG = 0x09,                    // 工作模式配置寄存器，设置传感器的工作模式（如心率模式、SpO2模式等）
+  SPO2_CONFIG = 0x0A,                    // SpO2配置寄存器，用于设置SpO2测量的灵敏度和采样率
+  LED_PULSE_AMPLITUDE_LED1PA = 0X0C,     // LED1的脉冲幅度（LED驱动电流的强度）
+  LED_PULSE_AMPLITUDE_LED2PA = 0X0D,     // LED2的脉冲幅度（LED驱动电流的强度）
+  MULTI_LED_MODE_CONTROL_SLOT1_3 = 0x11, // 多LED模式控制寄存器1和2，用于控制LED的开启/关闭
+  // MULTI_LED_MODE_CONTROL_SLOT2 = 0x11, // 多LED模式控制寄存器2，用于控制LED的开启/关闭
+  MULTI_LED_MODE_CONTROL_SLOT2_4 = 0x12, // 多LED模式控制寄存器3和4，用于控制LED的开启/关闭
+  // MULTI_LED_MODE_CONTROL_SLOT4 = 0x12, // 多LED模式控制寄存器4，用于控制LED的开启/关闭
+  DIE_TEMP_INTEGER = 0x1F,  // 温度寄存器整数部分，用于读取芯片的温度
+  DIE_TEMP_FRACTION = 0X20, // 温度寄存器小数部分，用于读取芯片的温度
+  DIE_TEMP_CONFIG = 0X21,   // 温度配置寄存器，用于启用或禁用温度传感器
+  REVISION_ID = 0XFE,       // 修订ID寄存器，用于获取芯片的修订版本
+  PART_ID = 0XFF,           // 部件ID寄存器，用于获取芯片的型号和ID
 } MAX30102_RegAddr_t;
 
 /**
@@ -172,7 +186,7 @@ typedef enum
 #define LED_CURRENT_8X 0XFF // 51.0MA 满值
 
 /**
- * @brief Multi-LED Mode Control Registers (0x11–0x12) 4个寄存器通用
+ * @brief Multi-LED Mode Control Registers (0x11–0x12) 2个寄存器通用
  *
  */
 
@@ -201,7 +215,80 @@ typedef enum
  * 温度计算方法： 读取
  * DIE_TEMP_INTEGER = 0x1F,
  * DIE_TEMP_FRACTION =  0X20, 这两个寄存器来获取整数和小数部分，
+ * 整数增量 : 1
+ * 小数增量 : 0.0625
  * 小数部分除以16 + 整数部分
+ * 
  */
 
+/**
+ * @brief INTERRUPT_ENABLE_1 (0x02) 中断使能寄存器1配置
+ * 
+ */
+#define INTER_A_FULL_EN (uint8_t)(0x01 << 7) // A_FULL_EN 中断使能
+#define INTER_A_FULL_DISABLE (uint8_t)(0x01 << 7) // A_FULL_EN 禁用中断
+#define INTER_PPG_RDY_EN (uint8_t)(0X01 << 6) // PPG_RDY_EN 中断使能
+#define INTER_PPG_RDY_DISABLE (uint8_t)(0X01 << 6) // PPG_RDY_EN 禁用中断
+#define INTER_ALC_OVF_EN (uint8_t) (0X01 << 5) // ALC_OVF_EN 中断使能
+#define INTER_ALC_OVF_DISABLE (uint8_t) (0X01 << 5) // ALC_OVF_EN 禁用中断
+
+/**
+ * @brief INTERRUPT_ENABLE_2 (0x03) 中断使能寄存器2配置
+ * 
+ */
+#define INTER_TEMP_RDY_EN 0x01 // TEMP_RDY_EN 中断使能
+#define INTER_TEMP_RDY_DISABLE 0x00 // TEMP_RDY_EN 禁用中断
+
+typedef enum {
+  REDLED_1,
+  REDLED_2,
+  REDLED_ALL,
+}Slot_RedLed_t;
+class MAX30102_Class
+{
+public:
+typedef enum {
+  INTR_DISABLE, // 禁用中断
+  INTR_ENABLE, // 使能中断
+}MAX30102_intr_t;
+
+
+  MAX30102_Class();
+  ~MAX30102_Class();
+  /**
+   * @brief 初始化MAX30102
+   *
+   * @param sda  MAX30102 SDA
+   * @param sclk MAX30102 SCLK
+   * @param intr MAX30102 中断
+   * @param i2c_bus MAX30102 I2C总线
+   * @param i2c_speed MAX30102 I2C速度
+   */
+  void begin(gpio_num_t intr, i2c_master_bus_handle_t *i2c_bus, uint32_t i2c_speed);
+  uint16_t Read_HeartRate(); // 读取心率
+  uint16_t Read_Spo2();      // 读取血氧
+  bool check();              // 检测是否有数据可读
+  void Read_HeartRAte_Spo2(float &heartRate,auto &oxygen);
+  float Read_Temp();
+  void OpenRedLed(Slot_RedLed_t channel);             // 打开红光
+  void CloseRedLed();            // 关闭红光
+  void OpenIRLed();               // 打开红外
+  void CloseIRLed();               // 关闭红外
+private:
+  static const uint8_t MAX30102_ADDR = 0X57; // I2C地址
+  int TIMEOUT = 100;                    // I2C超时
+  static const uint32_t DEF_Speed = 100000;  // 100KHz
+  static const uint8_t __Config[20];
+  i2c_master_bus_handle_t *bus_handle = nullptr;
+  i2c_master_dev_handle_t *dev_handle = nullptr;
+  volatile gpio_num_t __INTR; // 中断引脚
+  static volatile bool ReadFlag;
+  volatile bool __TempFlag = false; // 温度传感器标志
+  volatile uint32_t __I2C_Speed = DEF_Speed;
+  virtual void Init_i2c(void); // 初始化I2C
+  void WRDATA(uint8_t reg, uint8_t byte);
+  void init_intr();
+  static void intr_callback(void * arg); // 中断回调函数
+
+};
 #endif
