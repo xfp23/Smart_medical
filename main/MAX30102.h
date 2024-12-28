@@ -302,7 +302,9 @@ typedef enum {
   INTR_ENABLE, // 使能中断
 }MAX30102_intr_t;
 
+// typedef struct {
 
+// }MAX3010X_flag_t;
   MAX30102_Class();
   ~MAX30102_Class();
   /**
@@ -314,11 +316,12 @@ typedef enum {
    * @param i2c_bus MAX30102 I2C总线
    * @param i2c_speed MAX30102 I2C速度
    */
-  void begin(gpio_num_t intr = GPIO_NUM_NC, i2c_master_bus_handle_t *i2c_bus, uint32_t i2c_speed);
-  uint16_t Read_HeartRate(); // 读取心率
-  uint16_t Read_Spo2();      // 读取血氧
+  void begin(gpio_num_t intr = GPIO_NUM_NC, i2c_master_bus_handle_t *i2c_bus = nullptr, uint32_t i2c_speed = DEF_Speed);
+  void begin(i2c_master_bus_handle_t * i2c_bus = nullptr,uint32_t i2c_speed = DEF_Speed);
+  float Read_HeartRate(); // 读取心率
+  float Read_Spo2();      // 读取血氧
   bool check();              // 检测是否有数据可读
-  void Read_HeartRAte_Spo2(float &heartRate,auto &oxygen);
+  void Read_HeartRAte_Spo2(float &heartRate,float &oxygen);
   float Read_Temp();
   void setSlotLed(Slot_Led_t channel = RED_1_IR_2);             // 打开红光
   void setMode(Max3010x_Mode_t mode = SPO2_HEART);   // 设置传感器模式
@@ -336,7 +339,9 @@ private:
   volatile bool __TempFlag = false; // 温度传感器标志
   volatile uint32_t __I2C_Speed = DEF_Speed;
   virtual void Init_i2c(void); // 初始化I2C
-  void WRDATA(uint8_t reg, uint8_t byte);
+  // void WRDATA(uint8_t reg, uint8_t byte);
+  virtual float calculate_heart_rate(uint32_t heart_ADC); // 这是简略的计算方法，需要查阅资料重写
+  virtual float calculate_spo2(uint32_t oxygen_ADC_red); // 这是简略的计算方法，需要查阅资料重写
   void init_intr();
   static void intr_callback(void * arg); // 中断回调函数
 

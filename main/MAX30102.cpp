@@ -1,10 +1,7 @@
 #include "MAX30102.h"
 #include "driver/gpio.h"
 
-// i2c_master_bus_handle_t bus_handle;
-// i2c_master_dev_handle_t dev_handle;
-// #define SCLK_Pin GPIO_NUM_4
-// #define SDA_Pin GPIO_NUM_0
+
 
 const uint8_t MAX30102_Class::__Config[20] = {
     (uint8_t)INTERRUPT_ENABLE_1, // 中断使能寄存器1
@@ -37,6 +34,7 @@ MAX30102_Class::MAX30102_Class()
 
 MAX30102_Class::~MAX30102_Class()
 {
+    i2c_master_bus_rm_device(*dev_handle); // 移除I2C设备
     delete dev_handle;
 }
 
@@ -54,7 +52,7 @@ void MAX30102_Class::Init_i2c()
     // printf("i2c init success\n");
 }
 
-void MAX30102_Class::begin(gpio_num_t intr, i2c_master_bus_handle_t *i2c_bus, uint32_t i2c_speed = DEF_Speed)
+void MAX30102_Class::begin(gpio_num_t intr, i2c_master_bus_handle_t *i2c_bus, uint32_t i2c_speed )
 {
     __INTR = intr;
     bus_handle = i2c_bus;
@@ -68,61 +66,91 @@ void MAX30102_Class::begin(gpio_num_t intr, i2c_master_bus_handle_t *i2c_bus, ui
     init_intr();
 }
 
-/**
- * @brief 向寄存器写入值
- *
- * @param data
- */
-void MAX30102_Class::WRDATA(uint8_t reg, uint8_t byte)
+
+void  MAX30102_Class::begin(i2c_master_bus_handle_t * i2c_bus,uint32_t i2c_speed)
 {
-    uint8_t data[2] = {reg, byte};
-    i2c_master_transmit(*dev_handle, data, 2, TIMEOUT);
+    bus_handle = i2c_bus;
+    __I2C_Speed = i2c_speed;
+    Init_i2c();
+    for (int i = 0; i < 20; i += 2)
+    {
+        i2c_master_transmit(*dev_handle, MAX30102_Class::__Config + i, 2, TIMEOUT);
+    }
 }
+// /**
+//  * @brief 向寄存器写入值
+//  *
+//  * @param data
+//  */
+// void MAX30102_Class::WRDATA(uint8_t reg, uint8_t byte)
+// {
+//     uint8_t data[2] = {reg, byte};
+//     i2c_master_transmit(*dev_handle, data, 2, TIMEOUT);
+// }
 
 /**
  * @brief 读取心率
  *
- * @return uint16_t
+ * @return float
  */
-uint16_t MAX30102_Class::Read_HeartRate()
+float MAX30102_Class::Read_HeartRate()
 {
-
+    // 测心率读取后三个字节
+    uint32_t ADC_Value = 0;
+    float HeartRate = 0.0f;
     ReadFlag = false;
     uint8_t Register = FIFO_Data_Register;
-    uint8_t data[6] = {0,
-    };
-    return 0;
+    uint8_t data[6] = {0};
+
+    i2c_master_transmit_receive(*dev_handle,&Register,1,data,6,TIMEOUT);
+    printf("HeratRate data: %x %x %x\n",data[3],data[4],data[5]);
+    ADC_Value = (uint32_t)data[3] << 16 | (uint16_t)data[4] << 8 | data[5];
+    ADC_Value &= 0x3FFFF; // 清空无效位
+    HeartRate = calculate_heart_rate(ADC_Value);
+    printf("HeartRate %.2f\n",HeartRate);
+    return HeartRate;
 }
 
-uint16_t MAX30102_Class::Read_Spo2()
+float MAX30102_Class::Read_Spo2()
 {
-    uint16_t data = 0;
+    uint32_t ADC_Value = 0;
+    float Spo2 = 0.0f; // 血氧
     ReadFlag = false;
-
-    return data;
+    uint8_t data[6] = {0};
+    uint8_t Register = FIFO_Data_Register;
+    i2c_master_transmit_receive(*dev_handle,&Register,1,data,6,TIMEOUT);
+     printf("Spo2 data: %x %x %x\n",data[0],data[1],data[2]);
+    ADC_Value = (uint32_t)data[0] << 16 | (uint16_t)data[1] << 8 | data[2];
+    ADC_Value &= 0x3FFFF;
+    Spo2 =calculate_spo2(ADC_Value);
+    printf("Spo2 : %.2f\n",Spo2);
+    return Spo2;
 }
 
 float MAX30102_Class::Read_Temp()
 {
-
+    uint8_t WriteData[2] = {DIE_TEMP_CONFIG, TEMP_EN};
     uint8_t ReadData[2] = {DIE_TEMP_INTEGER, DIE_TEMP_FRACTION};
     uint8_t Tempint = 0;
     uint8_t Tempfloat = 0;
     float result = 0.0f;
-    ReadFlag = false;
-    if (!__TempFlag)
-    {
-        uint8_t WriteData[2] = {DIE_TEMP_CONFIG, TEMP_EN};
-        __TempFlag = true;
-        i2c_master_transmit(*dev_handle, WriteData, 2, TIMEOUT);
-    }
+    // ReadFlag = false;
+    // if (!__TempFlag)
+    // {
+    //     uint8_t WriteData[2] = {DIE_TEMP_CONFIG, TEMP_EN};
+    //     __TempFlag = true;
+    //     i2c_master_transmit(*dev_handle, WriteData, 2, TIMEOUT);
+    // }
     // i2c_master_transmit(*dev_handle,&ReadData[1],1,TIMEOUT);
     // i2c_master_receive(*dev_handle,&Tempint,1,TIMEOUT);
     // i2c_master_transmit(*dev_handle,&ReadData[0],1,TIMEOUT);
     // i2c_master_receive(*dev_handle,&Tempfloat,1,TIMEOUT);
+    i2c_master_transmit(*dev_handle,WriteData,2,TIMEOUT);
     i2c_master_transmit_receive(*dev_handle, &ReadData[1], 1, &Tempint, 1, TIMEOUT);
     i2c_master_transmit_receive(*dev_handle, &ReadData[2], 1, &Tempfloat, 1, TIMEOUT);
-
+    Tempfloat &= 0x07; // 清空无效位
+    printf("Temp int data : %x\n",Tempint);
+    printf("Temp float data : %x\n",Tempfloat);
     if (Tempint > 0x80)
     {
         result = 0x100 - Tempint;
@@ -133,6 +161,7 @@ float MAX30102_Class::Read_Temp()
     }
     // printf("temp int : %d\n",Tempint);
     result += Tempfloat * 0.0625;
+    printf("Temp : %.2f\n",result);
     return result;
 }
 
@@ -140,10 +169,45 @@ float MAX30102_Class::Read_Temp()
  * @brief 读取心率和血氧
  *
  */
-void MAX30102_Class::Read_HeartRAte_Spo2(float &heartRate, auto &oxygen)
+void MAX30102_Class::Read_HeartRAte_Spo2(float &heartRate, float &oxygen)
 {
+    uint8_t Register = FIFO_Data_Register;  // 寄存器
+    uint8_t data[6] = {0};
+    uint32_t heart_ADC = 0, oxygen_ADC = 0;
+    
+    // 读取数据
+    i2c_master_transmit_receive(*dev_handle, &Register, 1, data, 6, TIMEOUT);
+    
+    // 获取ADC值
+    heart_ADC = (uint32_t)data[0] << 16 | (uint16_t)data[1] << 8 | data[2];
+    oxygen_ADC = (uint32_t)data[3] << 16 | (uint16_t)data[4] << 8 | data[5];
+    
+    // 限制ADC范围
+    heart_ADC &= 0x3FFFF;
+    oxygen_ADC &= 0x3FFFF;
+    heartRate = calculate_heart_rate(heart_ADC);
+    oxygen =  calculate_spo2(oxygen_ADC);
+    
+}
 
+float MAX30102_Class::calculate_heart_rate(uint32_t heart_ADC) {
+    // 假设我们有一个信号周期的估计值，这通常通过快速傅里叶变换 (FFT) 或其他方法得到
+    // 这里只做简化处理，假设心率信号的周期为固定值或通过采样周期推算
 
+    // 模拟从心跳信号中提取的 AC 信号部分（假设已知处理）
+    float heart_rate_frequency = (float) heart_ADC / 100000.0;  // 模拟的频率计算
+
+    // 计算心率，假设采样频率为50Hz，信号频率为 heart_rate_frequency
+    float heart_rate = heart_rate_frequency * 60; // 转化为每分钟的次数 (BPM)
+
+    return heart_rate;
+}
+
+// 计算血氧的函数
+float MAX30102_Class::calculate_spo2(uint32_t adc_value) {
+    const uint32_t max_adc_value = 262143;  // 18-bit ADC最大值
+    float percentage = (static_cast<float>(adc_value) / max_adc_value) * 100;
+    return percentage;
 }
 
 void MAX30102_Class::init_intr()
@@ -297,7 +361,7 @@ void MAX30102_Class::setMode(Max3010x_Mode_t Mode)
 {
     uint8_t data[2] = {
         MODE_CONFIG,
-        LOW_POWER_MODE_DISENABLE | RESET_DIS | HEARTRATE_SPO2};
+       0};
     switch (Mode)
     {
     case ONLY_SPO2:
