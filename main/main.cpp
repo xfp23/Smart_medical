@@ -17,19 +17,38 @@ extern "C" void app_main(void)
     //  http.begin();
     idf_i2c_init();
     max30102.begin(GPIO_NUM_34, &i2c_bus_handle, 400000);
-    //max30102.Read_Temp();
-    // max30102.OpenRedLed(REDLED_1);
-    // vTaskDelay(pdMS_TO_TICKS(1000));
-    max30102.OpenRedLed(REDLED_2);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    // max30102.OpenRedLed(REDLED_ALL);
-    // vTaskDelay(pdMS_TO_TICKS(1000));
+    max30102.setMode();
+    // max30102.Read_Temp();
+    //  max30102.OpenRedLed(REDLED_ALL);
+    //  vTaskDelay(pdMS_TO_TICKS(1000));
+    // max30102.setSlotLed(REDLED_ALL);
+    // printf("REDLED_ALL\n");
+    // vTaskDelay(pdMS_TO_TICKS(3000));
+
+    // max30102.setSlotLed(OFF_ALL);
+    // printf("OFF_ALL\n");
+    // vTaskDelay(pdMS_TO_TICKS(3000));
+
+    // max30102.setSlotLed(REDLED_1_2);
+    // printf("REDLED_1_2\n");
+    // vTaskDelay(pdMS_TO_TICKS(3000));
+    // max30102.setSlotLed(OFF_1_2);
+    // printf("OFF_1_2\n");
+    // vTaskDelay(pdMS_TO_TICKS(3000));
+     max30102.setSlotLed(REDLED_1_2);
+    // printf("REDLED_3_4\n");
+    // vTaskDelay(pdMS_TO_TICKS(3000));
+    //max30102.setSlotLed(OFF_3_4);
+    //printf("OFF_3_4\n");
+    // vTaskDelay(pdMS_TO_TICKS(3000));
+    // max30102.setSlotLed(REDLED_ALL);
+    // printf("REDLED_ALL\n");
     while (true)
     {
-      
+
         // if (max30102.check())
         // {
-              printf(" temp: %f\n", max30102.Read_Temp());
+        printf(" temp: %f\n", max30102.Read_Temp());
         // }
         // else
         // {

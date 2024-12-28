@@ -77,9 +77,9 @@ typedef enum
   SPO2_CONFIG = 0x0A,                    // SpO2配置寄存器，用于设置SpO2测量的灵敏度和采样率
   LED_PULSE_AMPLITUDE_LED1PA = 0X0C,     // LED1的脉冲幅度（LED驱动电流的强度）
   LED_PULSE_AMPLITUDE_LED2PA = 0X0D,     // LED2的脉冲幅度（LED驱动电流的强度）
-  MULTI_LED_MODE_CONTROL_SLOT1_3 = 0x11, // 多LED模式控制寄存器1和2，用于控制LED的开启/关闭
+  MULTI_LED_MODE_CONTROL_SLOT1_2 = 0x11, // 多LED模式控制寄存器1和2，用于控制LED的开启/关闭
   // MULTI_LED_MODE_CONTROL_SLOT2 = 0x11, // 多LED模式控制寄存器2，用于控制LED的开启/关闭
-  MULTI_LED_MODE_CONTROL_SLOT2_4 = 0x12, // 多LED模式控制寄存器3和4，用于控制LED的开启/关闭
+  MULTI_LED_MODE_CONTROL_SLOT3_4 = 0x12, // 多LED模式控制寄存器3和4，用于控制LED的开启/关闭
   // MULTI_LED_MODE_CONTROL_SLOT4 = 0x12, // 多LED模式控制寄存器4，用于控制LED的开启/关闭
   DIE_TEMP_INTEGER = 0x1F,  // 温度寄存器整数部分，用于读取芯片的温度
   DIE_TEMP_FRACTION = 0X20, // 温度寄存器小数部分，用于读取芯片的温度
@@ -190,17 +190,32 @@ typedef enum
  *
  */
 
-// 这是设置SLOT1和SLOT3的
-#define NONE_LEN_NOPA_SLOT1_3 0x00    // 不开灯也不设置电流强度
-#define TURNON_LEDRED_PA_SLOT1_3 0x01 // 开启红光并设置电流强度
-#define TURNON_LEDIR_PA_SLOT1_3 0X02  // 开启红外光并设置电流强度
-#define TURNOFF_LED_NOPA_SLOT1_3 0x03 // 关灯
+// // 这是设置SLOT1和SLOT3的
+// #define NONE_LEN_NOPA_SLOT1_3 0x00    // 不开灯也不设置电流强度
+// #define TURNON_LEDRED_PA_SLOT1_3 0x01 // 开启红光并设置电流强度
+// #define TURNON_LEDIR_PA_SLOT1_3 0X02  // 开启红外光并设置电流强度
+// #define TURNOFF_LED_NOPA_SLOT1_3 0x03 // 关灯
 
-// 这是设置SLOT2和SLOT4的
-#define NONE_LEN_NOPA_SLOT2_4 (uint8_t)(0x00 << 4)    // 不开灯也不设置电流强度
-#define TURNON_LEDRED_PA_SLOT2_4 (uint8_t)(0x01 << 4) // 开启红光并设置电流强度
-#define TURNON_LEDIR_PA_SLOT2_4 (uint8_t)(0X02 << 4)  // 开启红外光并设置电流强度
-#define TURNOFF_LED_NOPA_SLOT2_4 (uint8_t)(0x03 << 4) // 关灯
+// // 这是设置SLOT2和SLOT4的
+// #define NONE_LEN_NOPA_SLOT2_4 (uint8_t)(0x00 << 4)    // 不开灯也不设置电流强度
+// #define TURNON_LEDRED_PA_SLOT2_4 (uint8_t)(0x01 << 4) // 开启红光并设置电流强度
+// #define TURNON_LEDIR_PA_SLOT2_4 (uint8_t)(0X02 << 4)  // 开启红外光并设置电流强度
+// #define TURNOFF_LED_NOPA_SLOT2_4 (uint8_t)(0x03 << 4) // 关灯
+
+#define TURNOFF_LED_SLOT1_3 (uint8_t)0x00            // 关SLOT1或SLOT3的灯
+#define TURNOFF_LED_SLOT2_4 (uint8_t)(0x00 << 4)        // 关SLOT2或SLOT4的灯
+
+
+#define TURNON_REDLED_2 (uint8_t)(0X01 << 4) // 开启SLOT2红光
+#define TURNON_REDLED_1 (uint8_t)0X01        // 开启SLOT1红光
+#define TURNON_REDLED_4 (uint8_t)(0X01 << 4) // 开启SLOT1红光
+#define TURNON_REDLED_3 (uint8_t)0X01        // 开启红光
+
+#define TURNON_IRLED_1 (uint8_t)0x02                 // 开启红外光1
+#define TURNON_IRLED_2 (uint8_t)(0x02 << 4) // 开启SLOT2红外光
+#define TURNON_IRLED_3 (uint8_t)0x02                 // 开启红外光1
+#define TURNON_IRLED_4 (uint8_t)(0x02 << 4) // 开启SLOT2红外光
+
 
 /**
  * @brief Temperature Data (0x1F–0x21)
@@ -239,11 +254,46 @@ typedef enum
 #define INTER_TEMP_RDY_EN 0x01 // TEMP_RDY_EN 中断使能
 #define INTER_TEMP_RDY_DISABLE 0x00 // TEMP_RDY_EN 禁用中断
 
+typedef enum
+{
+  // 此处的数字均代表SLOT时间槽
+
+  OFF_ALL = 0x00, // 关掉所有灯光  
+  OFF_1_2 = 0x03, // 关闭SLOT1和SLOT2 
+  OFF_3_4 = 0x05, // 关闭SLOT3和SLOT4
+  REDLED_1_2 = (TURNON_REDLED_1 | TURNON_REDLED_2), // 将SLOT1和SLOT2 设置为红光 
+  REDLED_3_4 = (TURNON_REDLED_3 | TURNON_REDLED_4) << 2, // 将SLOT3和SLOT4 设置为红光 
+
+  IRLED_1_2 = (TURNON_IRLED_1 | TURNON_IRLED_2), //  将SLOT1和SLOT2 设置为红外光 
+  IRLED_3_4 = (TURNON_IRLED_3 | TURNON_IRLED_4) << 2, // 将SLOT3和SLOT4 设置为红外光 
+
+  REDLED_ALL = (TURNON_REDLED_1 | TURNON_REDLED_2 | TURNON_REDLED_3 | TURNON_REDLED_4) << 4, // 将所有灯光设置为红光  
+  IRLED_ALL = (TURNON_IRLED_1 | TURNON_IRLED_2 | TURNON_IRLED_3 | TURNON_IRLED_4) << 4,      // 将所有灯光设置为红外光 
+
+  RED_1_IR_2 = (TURNON_REDLED_1 | TURNON_IRLED_2), // 将SLOT1 设置为红光，SLOT2 设置为红外光 
+  IR1_RED2 = (TURNON_IRLED_1 | TURNON_REDLED_2),   // 将SLOT1 设置为红外光，SLOT2 设置为红光 
+
+  RED_3_IR_4 = (TURNON_REDLED_3 | TURNON_IRLED_4) << 1, // 将SLOT3 设置为红光，SLOT4 设置为红外光 
+  RED_4_IR_3 = (TURNON_IRLED_3 | TURNON_REDLED_4) << 1, // 将SLOT3 设置为红外光，SLOT4 设置为红光 
+
+  ONLY_RED_1 = TURNON_REDLED_1, // 将SLOT1 设置为红光 
+  ONLY_RED_2 = TURNON_REDLED_2, // 将SLOT2 设置为红光 <
+  ONLY_RED_3 = TURNON_REDLED_3 << 2, // 将SLOT3 设置为红光 
+  ONLY_RED_4 = TURNON_REDLED_4 << 2, // 将SLOT4 设置为红光 
+
+  ONLY_IR_1 = TURNON_IRLED_1, // 将SLOT1 设置为红外光 
+  ONLY_IR_2 = TURNON_IRLED_2, // 将SLOT2 设置为红外光 
+  ONLY_IR_3 = TURNON_IRLED_3 << 2, // 将SLOT3 设置为红外光 
+  ONLY_IR_4 = TURNON_IRLED_4 << 2, // 将SLOT4 设置为红外光 
+
+} Slot_Led_t;
+
 typedef enum {
-  REDLED_1,
-  REDLED_2,
-  REDLED_ALL,
-}Slot_RedLed_t;
+  ONLY_SPO2, // 仅测血氧
+  ONLY_HEART, // 仅测心率
+  SPO2_HEART, // 血氧和心率都测 < !/* default */>
+}Max3010x_Mode_t;
+
 class MAX30102_Class
 {
 public:
@@ -264,18 +314,18 @@ typedef enum {
    * @param i2c_bus MAX30102 I2C总线
    * @param i2c_speed MAX30102 I2C速度
    */
-  void begin(gpio_num_t intr, i2c_master_bus_handle_t *i2c_bus, uint32_t i2c_speed);
+  void begin(gpio_num_t intr = GPIO_NUM_NC, i2c_master_bus_handle_t *i2c_bus, uint32_t i2c_speed);
   uint16_t Read_HeartRate(); // 读取心率
   uint16_t Read_Spo2();      // 读取血氧
   bool check();              // 检测是否有数据可读
   void Read_HeartRAte_Spo2(float &heartRate,auto &oxygen);
   float Read_Temp();
-  void OpenRedLed(Slot_RedLed_t channel);             // 打开红光
-  void CloseRedLed();            // 关闭红光
-  void OpenIRLed();               // 打开红外
-  void CloseIRLed();               // 关闭红外
+  void setSlotLed(Slot_Led_t channel = RED_1_IR_2);             // 打开红光
+  void setMode(Max3010x_Mode_t mode = SPO2_HEART);   // 设置传感器模式
+
 private:
-  static const uint8_t MAX30102_ADDR = 0X57; // I2C地址
+  volatile Max3010x_Mode_t Mode = SPO2_HEART; // 传感器模式默认
+  static const uint8_t MAX30102_ADDR = 0xAE; // I2C地址
   int TIMEOUT = 100;                    // I2C超时
   static const uint32_t DEF_Speed = 100000;  // 100KHz
   static const uint8_t __Config[20];

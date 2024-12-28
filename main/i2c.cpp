@@ -14,5 +14,5 @@ void idf_i2c_init()
         .flags = {.enable_internal_pullup = true,},
     };
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_master_conf,&i2c_bus_handle));
-    printf("idf i2c bus init\n");
+    // printf("idf i2c bus init\n");
 }
