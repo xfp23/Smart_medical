@@ -3,6 +3,7 @@
 #include "nvs_flash.h"
 #include "http.h"
 #include <iostream>
+#include "System.h"
 using namespace std;
 
 #define TAG "HTTP_SERVER"
@@ -131,29 +132,29 @@ void HTTP_Server::  OpenHtml(const char *load)
 
 esp_err_t HTTP_Server::http_handle(httpd_req_t *req)
 {
-    ESP_LOGI(TAG, "Sending HTML content");
+    //ESP_LOGI(TAG, "Sending HTML content");
 
     // 假设这些是你动态插入的健康数据
-    float temp = 22.5;         // 环境温度
-    float bodyTemp = 37.0;     // 体温
-    float heartRate = 75.0;    // 心率
-    float oxygen = 98.0;       // 血氧饱和度
+    // float temp = 22.5;         // 环境温度
+    // float bodyTemp = 37.0;     // 体温
+    // float heartRate = 75.0;    // 心率
+    // float oxygen = 98.0;       // 血氧饱和度
 
     // 计算最终 HTML 内容的大小，增加空间以适应动态数据
     size_t buffer_size = Html_size + 100;  // 留出额外空间
     char *buffer = (char*)malloc(buffer_size);  // 动态分配内存
 
     if (buffer == nullptr) {
-        ESP_LOGE(TAG, "Memory allocation failed for buffer");
+       // ESP_LOGE(TAG, "Memory allocation failed for buffer");
         return ESP_FAIL;
     }
 
     // 使用 snprintf 格式化 HTML 内容并插入动态值
-    int written = snprintf(buffer, buffer_size, this->HTML, temp, bodyTemp, heartRate, oxygen);
+    int written = snprintf(buffer, buffer_size, this->HTML,device.Sensor.Ambient_temp, device.Sensor.Body_temp, device.Sensor.Heart_Rate, device.Sensor.Spo2);
 
     // 检查格式化是否成功，防止缓冲区溢出
     if (written < 0 || written >= buffer_size) {
-        ESP_LOGE(TAG, "Error formatting HTML or buffer overflow");
+       // ESP_LOGE(TAG, "Error formatting HTML or buffer overflow");
         free(buffer);
         return ESP_FAIL;
     }
@@ -165,5 +166,37 @@ esp_err_t HTTP_Server::http_handle(httpd_req_t *req)
     free(buffer);
     return ESP_OK;
 }
+
+char *HTTP_Server::getIP() {
+    // 分配内存存储 IP 地址字符串
+    char *Ip = (char *)malloc(20);
+    if (Ip == nullptr) {
+        ESP_LOGE("HTTP_Server", "Memory allocation failed");
+        return nullptr;
+    }
+
+    // 获取 AP 接口信息
+    esp_netif_ip_info_t ip_info;
+    esp_netif_t *ap_netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if (ap_netif == nullptr) {
+        ESP_LOGE("HTTP_Server", "AP netif not found");
+        free(Ip);
+        return nullptr;
+    }
+
+    // 获取 IP 地址
+    esp_err_t ret = esp_netif_get_ip_info(ap_netif, &ip_info);
+    if (ret != ESP_OK) {
+        ESP_LOGE("HTTP_Server", "Failed to get IP info: %s", esp_err_to_name(ret));
+        free(Ip);
+        return nullptr;
+    }
+
+    // 格式化 IP 地址为字符串
+    snprintf(Ip, 20, IPSTR, IP2STR(&ip_info.ip));
+    printf("%s",Ip);
+    return Ip;
+}
+
 
 

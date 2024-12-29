@@ -1,66 +1,38 @@
-#include "http.h"
-#include "i2c.h"
-#include <cstring>
-#include "MAX30102.h"
+#include "System.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-MAX30102_Class max30102;
 
-float  heart = 0.0f;
-float  spo2 = 0.0f;
-
-HTTP_Server http;
-extern const char *html_content;
-auto &ou = http;
 extern "C" void app_main(void)
 {
-    //  http.OpenHtml(html_content);
-
-    //  http.begin();
-    idf_i2c_init();
-    max30102.begin(&i2c_bus_handle, 400000);
-    max30102.setMode();
-    // max30102.Read_Temp();
-    //  max30102.OpenRedLed(REDLED_ALL);
-    //  vTaskDelay(pdMS_TO_TICKS(1000));
-    // max30102.setSlotLed(REDLED_ALL);
-    // printf("REDLED_ALL\n");
-    // vTaskDelay(pdMS_TO_TICKS(3000));
-
-    // max30102.setSlotLed(OFF_ALL);
-    // printf("OFF_ALL\n");
-    // vTaskDelay(pdMS_TO_TICKS(3000));
-
-    // max30102.setSlotLed(REDLED_1_2);
-    // printf("REDLED_1_2\n");
-    // vTaskDelay(pdMS_TO_TICKS(3000));
-    // max30102.setSlotLed(OFF_1_2);
-    // printf("OFF_1_2\n");
-    // vTaskDelay(pdMS_TO_TICKS(3000));
-     max30102.setSlotLed(IR1_RED2);
-     max30102.setSlotLed(RED_3_IR_4);
-    // printf("REDLED_3_4\n");
-    // vTaskDelay(pdMS_TO_TICKS(3000));
-    //max30102.setSlotLed(OFF_3_4);
-    //printf("OFF_3_4\n");
-    // vTaskDelay(pdMS_TO_TICKS(3000));
-    // max30102.setSlotLed(REDLED_ALL);
-    // printf("REDLED_ALL\n");
+    device.begin();
+    esp_task_wdt_add(NULL);
     while (true)
     {
-
-        // if (max30102.check())
-        // {
-        max30102.Read_HeartRate();
-        max30102.Read_Spo2();
-         max30102.Read_Temp();
-        max30102.Read_HeartRAte_Spo2((float &)heart,(float &)spo2);
-        // }
-        // else
-        // {
-        //     printf("intrrput don't tigger\n");
-        // }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        esp_task_wdt_reset();
+        if (device.timeFlag.system_1ms == ON)
+        {
+            device.timeFlag.system_1ms = OFF;
+        }
+        if (device.timeFlag.system_10ms == ON)
+        {
+            device.timeFlag.system_10ms = OFF;
+            device.DealWith_NTC();
+        }
+        if (device.timeFlag.system_100ms == ON)
+        {
+            device.timeFlag.system_100ms = OFF;
+            device.DealWith_max3010x();
+        }
+        if (device.timeFlag.system_500ms == ON)
+        {
+            device.timeFlag.system_500ms = OFF;
+             device.DealWith_oled();
+        }
+        if (device.timeFlag.system_1000ms == ON)
+        {
+            device.timeFlag.system_1000ms = OFF;
+           
+        }
     }
 }

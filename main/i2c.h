@@ -16,6 +16,8 @@
 extern "C" {
 #endif
 
+#define __IDF_I2C 0x2002
+ 
 void idf_i2c_init(void);
 
 extern i2c_master_bus_handle_t i2c_bus_handle;

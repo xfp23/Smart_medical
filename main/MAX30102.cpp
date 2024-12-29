@@ -1,13 +1,14 @@
 #include "MAX30102.h"
 #include "driver/gpio.h"
-
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 
 const uint8_t MAX30102_Class::__Config[20] = {
     (uint8_t)INTERRUPT_ENABLE_1, // 中断使能寄存器1
     INTER_A_FULL_DISABLE | INTER_ALC_OVF_DISABLE | INTER_PPG_RDY_DISABLE,
     (uint8_t)INTERRUPT_ENABLE_2, // 中断使能寄存器2
-    INTER_TEMP_RDY_EN,
+    INTER_TEMP_RDY_DISABLE,
     (uint8_t)FIFO_Configuration, // 寄存器地址
     SAMPLE_AVG_2 | FIFO_ROLLOVER_EN | FIFO_ALMOST_FULL_7,
     (uint8_t)MODE_CONFIG,
@@ -72,7 +73,7 @@ void  MAX30102_Class::begin(i2c_master_bus_handle_t * i2c_bus,uint32_t i2c_speed
     bus_handle = i2c_bus;
     __I2C_Speed = i2c_speed;
     Init_i2c();
-    for (int i = 0; i < 20; i += 2)
+    for (int i = 0; i <= 20; i += 2)
     {
         i2c_master_transmit(*dev_handle, MAX30102_Class::__Config + i, 2, TIMEOUT);
     }
@@ -102,12 +103,15 @@ float MAX30102_Class::Read_HeartRate()
     uint8_t Register = FIFO_Data_Register;
     uint8_t data[6] = {0};
 
-    i2c_master_transmit_receive(*dev_handle,&Register,1,data,6,TIMEOUT);
-    printf("HeratRate data: %x %x %x\n",data[3],data[4],data[5]);
+    // i2c_master_transmit_receive(*dev_handle,&Register,1,data,6,TIMEOUT);
+    i2c_master_transmit(*dev_handle,&Register,1,TIMEOUT);
+    vTaskDelay(pdMS_TO_TICKS(20));
+    i2c_master_receive(*dev_handle,data,6,TIMEOUT);
+    // printf("HeratRate data: %x %x %x\n",data[3],data[4],data[5]);
     ADC_Value = (uint32_t)data[3] << 16 | (uint16_t)data[4] << 8 | data[5];
     ADC_Value &= 0x3FFFF; // 清空无效位
     HeartRate = calculate_heart_rate(ADC_Value);
-    printf("HeartRate %.2f\n",HeartRate);
+    // printf("HeartRate %.2f\n",HeartRate);
     return HeartRate;
 }
 
@@ -118,12 +122,14 @@ float MAX30102_Class::Read_Spo2()
     ReadFlag = false;
     uint8_t data[6] = {0};
     uint8_t Register = FIFO_Data_Register;
-    i2c_master_transmit_receive(*dev_handle,&Register,1,data,6,TIMEOUT);
-     printf("Spo2 data: %x %x %x\n",data[0],data[1],data[2]);
+    i2c_master_transmit(*dev_handle,&Register,1,TIMEOUT);
+    vTaskDelay(pdMS_TO_TICKS(20));
+    i2c_master_receive(*dev_handle,data,6,TIMEOUT);
+    //  printf("Spo2 data: %x %x %x\n",data[0],data[1],data[2]);
     ADC_Value = (uint32_t)data[0] << 16 | (uint16_t)data[1] << 8 | data[2];
     ADC_Value &= 0x3FFFF;
     Spo2 =calculate_spo2(ADC_Value);
-    printf("Spo2 : %.2f\n",Spo2);
+    // printf("Spo2 : %.2f\n",Spo2);
     return Spo2;
 }
 
@@ -131,39 +137,39 @@ float MAX30102_Class::Read_Temp()
 {
     uint8_t WriteData[2] = {DIE_TEMP_CONFIG, TEMP_EN};
     uint8_t ReadData[2] = {DIE_TEMP_INTEGER, DIE_TEMP_FRACTION};
-    uint8_t Tempint = 0;
-    uint8_t Tempfloat = 0;
+    uint8_t Tempint = 0;     // 整数部分
+    uint8_t Tempfloat = 0;   // 小数部分
     float result = 0.0f;
-    // ReadFlag = false;
-    // if (!__TempFlag)
-    // {
-    //     uint8_t WriteData[2] = {DIE_TEMP_CONFIG, TEMP_EN};
-    //     __TempFlag = true;
-    //     i2c_master_transmit(*dev_handle, WriteData, 2, TIMEOUT);
-    // }
-    // i2c_master_transmit(*dev_handle,&ReadData[1],1,TIMEOUT);
-    // i2c_master_receive(*dev_handle,&Tempint,1,TIMEOUT);
-    // i2c_master_transmit(*dev_handle,&ReadData[0],1,TIMEOUT);
-    // i2c_master_receive(*dev_handle,&Tempfloat,1,TIMEOUT);
-    i2c_master_transmit(*dev_handle,WriteData,2,TIMEOUT);
-    i2c_master_transmit_receive(*dev_handle, &ReadData[1], 1, &Tempint, 1, TIMEOUT);
-    i2c_master_transmit_receive(*dev_handle, &ReadData[2], 1, &Tempfloat, 1, TIMEOUT);
-    Tempfloat &= 0x07; // 清空无效位
-    printf("Temp int data : %x\n",Tempint);
-    printf("Temp float data : %x\n",Tempfloat);
-    if (Tempint > 0x80)
+
+    // 开启温度测量
+    i2c_master_transmit(*dev_handle, WriteData, 2, TIMEOUT);
+    vTaskDelay(pdMS_TO_TICKS(50)); // 延时 50ms 等待测量完成
+
+    // 读取整数部分
+    i2c_master_transmit_receive(*dev_handle, &ReadData[0], 1, &Tempint, 1, TIMEOUT);
+
+    // 读取小数部分
+    i2c_master_transmit_receive(*dev_handle, &ReadData[1], 1, &Tempfloat, 1, TIMEOUT);
+    // printf("Temp : %x %x\n",Tempint,Tempfloat);
+    // 处理小数部分，仅保留低 3 位有效数据
+    Tempfloat &= 0x07;
+
+    // 处理整数部分，判断是否为负数
+    if (Tempint & 0x80) // 最高位为符号位
     {
-        result = 0x100 - Tempint;
+        result = -(0x100 - Tempint); // 补码转换为负数
     }
     else
     {
-        result += Tempint;
+        result = Tempint; // 正数
     }
-    // printf("temp int : %d\n",Tempint);
+
+    // 加入小数部分
     result += Tempfloat * 0.0625;
-    printf("Temp : %.2f\n",result);
+
     return result;
 }
+
 
 /**
  * @brief 读取心率和血氧
@@ -205,10 +211,25 @@ float MAX30102_Class::calculate_heart_rate(uint32_t heart_ADC) {
 
 // 计算血氧的函数
 float MAX30102_Class::calculate_spo2(uint32_t adc_value) {
-    const uint32_t max_adc_value = 262143;  // 18-bit ADC最大值
+    // 基于经验的估算公式
+    const uint32_t max_adc_value = 262143; // 18-bit ADC最大值
+    if (adc_value == 0 || adc_value > max_adc_value) {
+        return -1.0f; // 无效数据返回 -1
+    }
+    
+    // 将 ADC 值转为百分比并调整
     float percentage = (static_cast<float>(adc_value) / max_adc_value) * 100;
-    return percentage;
+
+    // 基于经验公式调整血氧范围
+    float spo2 = 90.0f + (percentage - 50.0f) * 0.2f; // 调整比例和范围
+
+    // 限制 SpO2 的合理范围
+    if (spo2 > 100.0f) spo2 = 100.0f;
+    if (spo2 < 70.0f) spo2 = 70.0f;
+
+    return spo2;
 }
+
 
 void MAX30102_Class::init_intr()
 {

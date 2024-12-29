@@ -78,10 +78,12 @@ const char* html_content = R"(
             <div class="value" id="oxygenValue">%.1f</div>
         </div>
     </div>
-
     <script>
-       // setInterval(fetchHealthData, 3000);
-    </script>
+    // 使用 setInterval 定时刷新页面
+    setInterval(() => {
+        location.reload();
+    }, 1000);
+</script>  
 </body>
 </html>
 )";
